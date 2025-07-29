@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import json
 import subprocess
 import time
@@ -21,13 +22,18 @@ def get_sensor_readings(data, parent_keys=None, temps=None):
 
 def main():
     """
-    Takes 10 temperature readings every 10 seconds, showing only the values
+    Takes temperature readings at specified intervals, showing only the values
     that have changed since the last reading.
     """
+    parser = argparse.ArgumentParser(description='Monitor sensor temperatures.')
+    parser.add_argument('interval', type=int, nargs='?', default=5, help='Seconds between readings (default: 5)')
+    parser.add_argument('readings', type=int, nargs='?', default=10, help='Number of readings to take (default: 10)')
+    args = parser.parse_args()
+
     previous_temps = {}
 
-    for i in range(10):
-        print(f"--- Reading {i + 1}/10 ---")
+    for i in range(args.readings):
+        print(f"--- Reading {i + 1}/{args.readings} ---")
         try:
             result = subprocess.run(
                 ['sensors', '-j'],
@@ -54,16 +60,16 @@ def main():
                         print(f"{sensor}: {temp:.2f} ({sign}{diff:.2f})")
                 previous_temps = current_temps
 
-            if i < 9:  # Don't sleep after the final reading
-                time.sleep(10)
+            if i < args.readings - 1:  # Don't sleep after the final reading
+                time.sleep(args.interval)
 
         except FileNotFoundError:
             print("Error: 'sensors' command not found. Please ensure 'lm-sensors' is installed.")
             break
         except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
             print(f"An error occurred: {e}")
-            if i < 9:
-                time.sleep(10) # Wait before next attempt
+            if i < args.readings - 1:
+                time.sleep(args.interval) # Wait before next attempt
 
 if __name__ == "__main__":
     main()
